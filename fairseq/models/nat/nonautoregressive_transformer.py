@@ -219,7 +219,10 @@ class NATransformerDecoder(FairseqNATDecoder):
         self.pred_length_offset = getattr(args, "pred_length_offset", False)
         self.length_loss_factor = getattr(args, "length_loss_factor", 0.1)
         self.src_embedding_copy = getattr(args, "src_embedding_copy", False)
-        self.embed_length = Embedding(256, self.encoder_embed_dim, None)
+        # Define the architecture of the length prediction network.
+        len_pred_hidden_neurons = 128
+        self.embed_length_hidden = Embedding(len_pred_hidden_neurons, self.encoder_embed_dim, None)
+        self.embed_length = Embedding(256, len_pred_hidden_neurons, None)
 
     @ensemble_decoder
     def forward(self, normalize, encoder_out, prev_output_tokens, step=0, **unused):
@@ -241,7 +244,9 @@ class NATransformerDecoder(FairseqNATDecoder):
         enc_feats = _mean_pooling(enc_feats, src_masks)
         if self.sg_length_pred:
             enc_feats = enc_feats.detach()
-        length_out = F.linear(enc_feats, self.embed_length.weight)
+        # Run the FFNN on the given architecture.
+        length_out = F.linear(enc_feats, self.embed_length_hidden.weight)
+        length_out = F.linear(length_out, self.embed_length.weight)
         return F.log_softmax(length_out, -1) if normalize else length_out
 
     def extract_features(
