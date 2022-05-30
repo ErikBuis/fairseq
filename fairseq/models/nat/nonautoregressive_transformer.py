@@ -220,9 +220,12 @@ class NATransformerDecoder(FairseqNATDecoder):
         self.length_loss_factor = getattr(args, "length_loss_factor", 0.1)
         self.src_embedding_copy = getattr(args, "src_embedding_copy", False)
         # Define the architecture of the length prediction network.
-        len_pred_hidden_neurons = 128
-        self.embed_length_hidden = Embedding(len_pred_hidden_neurons, self.encoder_embed_dim, None)
-        self.embed_length = Embedding(256, len_pred_hidden_neurons, None)
+        self.len_pred_hidden = 128
+        self.len_pred_classes = 128
+        self.embed_length_hidden = Embedding(self.len_pred_hidden,
+                                             self.encoder_embed_dim, None)
+        self.embed_length = Embedding(self.len_pred_classes,
+                                      self.len_pred_hidden, None)
 
     @ensemble_decoder
     def forward(self, normalize, encoder_out, prev_output_tokens, step=0, **unused):
@@ -389,17 +392,17 @@ class NATransformerDecoder(FairseqNATDecoder):
             # obtain the length target
             tgt_lengs = tgt_tokens.ne(self.padding_idx).sum(1).long()
             if self.pred_length_offset:
-                length_tgt = tgt_lengs - src_lengs + 128
+                length_tgt = tgt_lengs - src_lengs + self.len_pred_classes // 2
             else:
                 length_tgt = tgt_lengs
-            length_tgt = length_tgt.clamp(min=0, max=255)
+            length_tgt = length_tgt.clamp(min=0, max=self.len_pred_classes - 1)
 
         else:
             # predict the length target (greedy for now)
             # TODO: implementing length-beam
             pred_lengs = length_out.max(-1)[1]
             if self.pred_length_offset:
-                length_tgt = pred_lengs - 128 + src_lengs
+                length_tgt = pred_lengs - self.len_pred_classes // 2 + src_lengs
             else:
                 length_tgt = pred_lengs
 
