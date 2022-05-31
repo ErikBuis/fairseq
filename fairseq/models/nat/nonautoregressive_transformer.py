@@ -390,9 +390,14 @@ class NATransformerDecoder(FairseqNATDecoder):
             length_tgt = length_tgt.clamp(min=0, max=255)
 
         else:
-            # predict the length target (greedy for now)
             # TODO: implementing length-beam
-            pred_lengs = length_out.max(-1)[1]
+            # Predict the length target. This is done by choosing from a
+            # weighted distribution of the top k probabilities.
+            topk_probs, topk_lengths = length_out.topk(5)
+            pred_lengs = topk_lengths[
+                torch.arange(length_out.size(0)),
+                torch.multinomial(topk_probs, 1).flatten()
+            ]
             if self.pred_length_offset:
                 length_tgt = pred_lengs - 128 + src_lengs
             else:
