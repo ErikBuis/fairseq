@@ -377,7 +377,7 @@ class NATransformerDecoder(FairseqNATDecoder):
                     enc_feats.size(0)
                 )
             else:
-                src_lengs = (~src_masks).transpose(0, 1).type_as(enc_feats).sum(0)
+                src_lengs = src_masks.size(1) - src_masks.sum(1)
             src_lengs = src_lengs.long()
 
         if tgt_tokens is not None:
