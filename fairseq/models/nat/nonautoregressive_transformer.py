@@ -220,10 +220,10 @@ class NATransformerDecoder(FairseqNATDecoder):
         self.length_loss_factor = getattr(args, "length_loss_factor", 0.1)
         self.src_embedding_copy = getattr(args, "src_embedding_copy", False)
         # Define the architecture of the length prediction network.
-        self.len_pred_hidden = 128
+        self.len_pred_hidden = 256
         self.len_pred_classes = 256
-        self.embed_length_hidden = Embedding(self.len_pred_hidden,
-                                             self.encoder_embed_dim, None)
+        self.hidden_layer = torch.nn.Linear(self.encoder_embed_dim,
+                                            self.len_pred_hidden)
         self.embed_length = Embedding(self.len_pred_classes,
                                       self.len_pred_hidden, None)
 
@@ -248,7 +248,7 @@ class NATransformerDecoder(FairseqNATDecoder):
         if self.sg_length_pred:
             enc_feats = enc_feats.detach()
         # Run the FFNN on the given architecture.
-        length_out = F.linear(enc_feats, self.embed_length_hidden.weight)
+        length_out = self.hidden_layer(enc_feats)
         F.relu(length_out, inplace=True)
         length_out = F.linear(length_out, self.embed_length.weight)
         return F.log_softmax(length_out, -1) if normalize else length_out
