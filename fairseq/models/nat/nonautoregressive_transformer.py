@@ -221,7 +221,7 @@ class NATransformerDecoder(FairseqNATDecoder):
         self.src_embedding_copy = getattr(args, "src_embedding_copy", False)
         # Define the architecture of the length prediction network.
         self.len_pred_hidden = 128
-        self.len_pred_classes = 128
+        self.len_pred_classes = 256
         self.embed_length_hidden = Embedding(self.len_pred_hidden,
                                              self.encoder_embed_dim, None)
         self.embed_length = Embedding(self.len_pred_classes,
@@ -249,6 +249,7 @@ class NATransformerDecoder(FairseqNATDecoder):
             enc_feats = enc_feats.detach()
         # Run the FFNN on the given architecture.
         length_out = F.linear(enc_feats, self.embed_length_hidden.weight)
+        F.relu(length_out, inplace=True)
         length_out = F.linear(length_out, self.embed_length.weight)
         return F.log_softmax(length_out, -1) if normalize else length_out
 
