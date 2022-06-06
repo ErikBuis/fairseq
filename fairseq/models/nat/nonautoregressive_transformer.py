@@ -400,7 +400,6 @@ class NATransformerDecoder(FairseqNATDecoder):
                 torch.arange(length_out.size(0)),
                 torch.multinomial(topk_probs, 1).flatten()
             ]
-            pred_lengs = length_out.max(-1)[1]
             if self.pred_length_offset:
                 length_tgt = pred_lengs - self.length_classes // 2 + src_lengs
             else:
