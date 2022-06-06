@@ -219,7 +219,6 @@ class NATransformerDecoder(FairseqNATDecoder):
         self.pred_length_offset = getattr(args, "pred_length_offset", False)
         self.length_loss_factor = getattr(args, "length_loss_factor", 0.1)
         self.src_embedding_copy = getattr(args, "src_embedding_copy", False)
-        self.topk = getattr(args, "topk", 1)
         self.length_classes = 256
         self.embed_length = Embedding(self.length_classes,
                                       self.encoder_embed_dim, None)
@@ -396,8 +395,7 @@ class NATransformerDecoder(FairseqNATDecoder):
             # TODO: implementing length-beam
             # Predict the length target. This is done by choosing from a
             # weighted distribution of the top k probabilities.
-            topk_probs, topk_lengths = \
-                F.softmax(length_out, -1).topk(self.topk)
+            topk_probs, topk_lengths = F.softmax(length_out, -1).topk(5)
             pred_lengs = topk_lengths[
                 torch.arange(length_out.size(0)),
                 torch.multinomial(topk_probs, 1).flatten()
@@ -457,7 +455,6 @@ def base_architecture(args):
     args.pred_length_offset = getattr(args, "pred_length_offset", False)
     args.length_loss_factor = getattr(args, "length_loss_factor", 0.1)
     args.src_embedding_copy = getattr(args, "src_embedding_copy", False)
-    args.topk = getattr(args, "topk", 1)
 
 
 @register_model_architecture(
