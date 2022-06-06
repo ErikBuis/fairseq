@@ -219,7 +219,10 @@ class NATransformerDecoder(FairseqNATDecoder):
         self.pred_length_offset = getattr(args, "pred_length_offset", False)
         self.length_loss_factor = getattr(args, "length_loss_factor", 0.1)
         self.src_embedding_copy = getattr(args, "src_embedding_copy", False)
-        self.embed_length = Embedding(256, self.encoder_embed_dim, None)
+        self.topk = getattr(args, "topk", 1)
+        self.length_classes = 256
+        self.embed_length = Embedding(self.length_classes,
+                                      self.encoder_embed_dim, None)
 
     @ensemble_decoder
     def forward(self, normalize, encoder_out, prev_output_tokens, step=0, **unused):
@@ -377,29 +380,31 @@ class NATransformerDecoder(FairseqNATDecoder):
                     enc_feats.size(0)
                 )
             else:
-                src_lengs = (~src_masks).transpose(0, 1).type_as(enc_feats).sum(0)
+                src_lengs = src_masks.size(1) - src_masks.sum(1)
             src_lengs = src_lengs.long()
 
         if tgt_tokens is not None:
             # obtain the length target
             tgt_lengs = tgt_tokens.ne(self.padding_idx).sum(1).long()
             if self.pred_length_offset:
-                length_tgt = tgt_lengs - src_lengs + 128
+                length_tgt = tgt_lengs - src_lengs + self.length_classes // 2
             else:
                 length_tgt = tgt_lengs
-            length_tgt = length_tgt.clamp(min=0, max=255)
+            length_tgt = length_tgt.clamp(min=0, max=self.length_classes - 1)
 
         else:
             # TODO: implementing length-beam
             # Predict the length target. This is done by choosing from a
             # weighted distribution of the top k probabilities.
-            topk_probs, topk_lengths = F.softmax(length_out, -1).topk(5)
+            topk_probs, topk_lengths = \
+                F.softmax(length_out, -1).topk(self.topk)
             pred_lengs = topk_lengths[
                 torch.arange(length_out.size(0)),
                 torch.multinomial(topk_probs, 1).flatten()
             ]
+            pred_lengs = length_out.max(-1)[1]
             if self.pred_length_offset:
-                length_tgt = pred_lengs - 128 + src_lengs
+                length_tgt = pred_lengs - self.length_classes // 2 + src_lengs
             else:
                 length_tgt = pred_lengs
 
@@ -452,6 +457,7 @@ def base_architecture(args):
     args.pred_length_offset = getattr(args, "pred_length_offset", False)
     args.length_loss_factor = getattr(args, "length_loss_factor", 0.1)
     args.src_embedding_copy = getattr(args, "src_embedding_copy", False)
+    args.topk = getattr(args, "topk", 1)
 
 
 @register_model_architecture(
