@@ -250,7 +250,6 @@ class NATransformerDecoder(FairseqNATDecoder):
         # Run the FFNN on the given architecture.
         length_out = self.hidden_layer(enc_feats)
         F.relu(length_out, inplace=True)
-        length_out = self.dropout_module(length_out)
         length_out = F.linear(length_out, self.embed_length.weight)
         return F.log_softmax(length_out, -1) if normalize else length_out
 
