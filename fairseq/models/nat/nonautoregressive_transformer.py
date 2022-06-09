@@ -249,7 +249,7 @@ class NATransformerDecoder(FairseqNATDecoder):
         else:
             src_lengs = src_masks.size(1) - src_masks.sum(1)
         src_lengs = src_lengs.long()
-        length_out = torch.zeros((B, 256))
+        length_out = torch.zeros((B, 256), device=src_lengs.device)
         length_out[:, (src_lengs * 0.9827906780019208).long().clamp(min=0, max=255)] = 1
         return F.log_softmax(length_out, -1) if normalize else length_out
 
