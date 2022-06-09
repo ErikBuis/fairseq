@@ -404,7 +404,9 @@ class NATransformerDecoder(FairseqNATDecoder):
             # predict the length target (greedy for now)
             # TODO: implementing length-beam
             pred_lengs = length_out.max(-1)[1]
-            print(f"pred_lengs={list(pred_lengs)}")
+            import logging
+            logger = logging.getLogger("fairseq_cli.interactive")
+            logger.info(f"pred_lengs={list(pred_lengs)}")
             if self.pred_length_offset:
                 length_tgt = pred_lengs - 128 + src_lengs
             else:
