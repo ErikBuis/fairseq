@@ -233,6 +233,7 @@ class NATransformerDecoder(FairseqNATDecoder):
     @ensemble_decoder
     def forward_length(self, normalize, encoder_out):
         enc_feats = encoder_out["encoder_out"][0]  # T x B x C
+        B = enc_feats.size(1)
         if len(encoder_out["encoder_padding_mask"]) > 0:
             src_masks = encoder_out["encoder_padding_mask"][0]  # B x T
         else:
@@ -242,13 +243,13 @@ class NATransformerDecoder(FairseqNATDecoder):
             enc_feats = enc_feats.detach()
         # Predict length using L_t = L_s * alpha.
         if src_masks is None:
-            src_lengs = enc_feats.new_ones(enc_feats.size(1)).fill_(
+            src_lengs = enc_feats.new_ones(B).fill_(
                 enc_feats.size(0)
             )
         else:
             src_lengs = src_masks.size(1) - src_masks.sum(1)
         src_lengs = src_lengs.long()
-        length_out = torch.zeros((enc_feats.size(1), 256))
+        length_out = torch.zeros((B, 256))
         length_out[:, (src_lengs * 0.9827906780019208).long().clamp(min=0, max=255)] = 1
         return F.log_softmax(length_out, -1) if normalize else length_out
 
