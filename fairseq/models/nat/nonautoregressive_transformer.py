@@ -219,7 +219,6 @@ class NATransformerDecoder(FairseqNATDecoder):
         self.pred_length_offset = getattr(args, "pred_length_offset", False)
         self.length_loss_factor = getattr(args, "length_loss_factor", 0.1)
         self.src_embedding_copy = getattr(args, "src_embedding_copy", False)
-        self.embed_length = Embedding(256, self.encoder_embed_dim, None)
 
     @ensemble_decoder
     def forward(self, normalize, encoder_out, prev_output_tokens, step=0, **unused):
@@ -241,7 +240,16 @@ class NATransformerDecoder(FairseqNATDecoder):
         enc_feats = _mean_pooling(enc_feats, src_masks)
         if self.sg_length_pred:
             enc_feats = enc_feats.detach()
-        length_out = F.linear(enc_feats, self.embed_length.weight)
+        # Predict length using L_t = L_s * alpha.
+        if src_masks is None:
+            src_lengs = enc_feats.new_ones(enc_feats.size(1)).fill_(
+                enc_feats.size(0)
+            )
+        else:
+            src_lengs = src_masks.size(1) - src_masks.sum(1)
+        src_lengs = src_lengs.long()
+        length_out = torch.zeros((enc_feats.size(1), 256))
+        length_out[:, (src_lengs * 0.9827906780019208).long().clamp(min=0, max=255)] = 1
         return F.log_softmax(length_out, -1) if normalize else length_out
 
     def extract_features(
