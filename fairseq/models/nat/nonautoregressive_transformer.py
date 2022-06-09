@@ -389,6 +389,8 @@ class NATransformerDecoder(FairseqNATDecoder):
                 src_lengs = src_masks.size(1) - src_masks.sum(1)
             src_lengs = src_lengs.long()
 
+        print("In forward_length_prediction... "
+              f"tgt_tokens is {'not' if tgt_tokens is not None else ''} None")
         if tgt_tokens is not None:
             # obtain the length target
             tgt_lengs = tgt_tokens.ne(self.padding_idx).sum(1).long()
