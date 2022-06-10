@@ -273,6 +273,7 @@ def main(cfg: FairseqConfig):
                     remove_bpe=cfg.common_eval.post_process,
                     extra_symbols_to_ignore=get_symbols_to_strip_from_output(generator),
                 )
+                hypo_str = hypo_str.encode("latin-1", "ignore")
                 detok_hypo_str = decode_fn(hypo_str)
                 score = hypo["score"] / math.log(2)  # convert to base 2
                 # original hypothesis (after tokenization and BPE)
