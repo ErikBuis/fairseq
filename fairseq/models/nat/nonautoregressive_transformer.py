@@ -244,7 +244,7 @@ class NATransformerDecoder(FairseqNATDecoder):
             enc_feats = enc_feats.detach()
         # Predict length using a deterministic model.
         length_out = torch.zeros((B, 256), device=enc_feats.device)
-        length_out[:, 27] = 1
+        length_out[:, 19] = 1
         return F.log_softmax(length_out, -1) if normalize else length_out
 
     def extract_features(
