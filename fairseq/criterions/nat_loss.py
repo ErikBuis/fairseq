@@ -57,7 +57,14 @@ class LabelSmoothedDualImitationCriterion(FairseqCriterion):
         else:
             logits = F.log_softmax(outputs, dim=-1)
             if targets.dim() == 1:
-                losses = F.nll_loss(logits, targets.to(logits.device), reduction="none")
+                if name == "length-loss":
+                    losses = (torch.vstack([torch.cat((torch.arange(tgt, 0, -1),
+                                                       torch.arange(256 - tgt)))
+                                            for tgt in targets])
+                              .type_as(outputs)
+                              * -torch.log(1 - F.softmax(outputs, -1))).sum(-1)
+                else:
+                    losses = F.nll_loss(logits, targets.to(logits.device), reduction="none")
 
             else:  # soft-labels
                 losses = F.kl_div(logits, targets.to(logits.device), reduction="none")
